@@ -22,7 +22,7 @@ const rb_data_type_t resource_limits_data_type = {
 
 static void resource_limits_reset(resource_limits_t *resource_limit)
 {
-    resource_limit->reached_limit = true;
+    resource_limit->reached_limit = false;
     resource_limit->last_capture_length = -1;
     resource_limit->render_score = 0;
     resource_limit->assign_score = 0;
@@ -254,6 +254,71 @@ static VALUE resource_limits_reset_method(VALUE self)
     return Qnil;
 }
 
+static VALUE resource_limits_dump(VALUE self)
+{
+    resource_limits_t *resource_limits;
+    ResourceLimits_Get_Struct(self, resource_limits);
+
+    return rb_ary_new3(7,
+        LONG2NUM(resource_limits->render_length_limit),
+        LONG2NUM(resource_limits->render_score_limit),
+        LONG2NUM(resource_limits->assign_score_limit),
+        (resource_limits->reached_limit? Qtrue : Qfalse),
+        LONG2NUM(resource_limits->last_capture_length),
+        LONG2NUM(resource_limits->render_score),
+        LONG2NUM(resource_limits->assign_score)
+        );
+}
+
+static VALUE resource_limits_load(VALUE self, VALUE ary)
+{
+    resource_limits_t *resource_limits;
+    ResourceLimits_Get_Struct(self, resource_limits);
+
+    Check_Type(ary, T_ARRAY);
+    if (rb_check_array_type(ary) == Qnil) {
+        return Qnil;
+    }
+
+    VALUE entry;
+    entry = rb_ary_entry(ary, 0);
+     if (entry != Qnil) {
+        resource_limits->render_length_limit = NUM2LONG(entry);
+    }
+
+    entry = rb_ary_entry(ary, 1);
+     if (entry != Qnil) {
+        resource_limits->render_score_limit = NUM2LONG(entry);
+    }
+
+    entry = rb_ary_entry(ary, 2);
+     if (entry != Qnil) {
+        resource_limits->assign_score_limit = NUM2LONG(entry);
+    }
+
+    entry = rb_ary_entry(ary, 3);
+    if (entry != Qnil) {
+        resource_limits->reached_limit = (entry == Qtrue);
+    }
+
+    entry = rb_ary_entry(ary, 4);
+     if (entry != Qnil) {
+        resource_limits->last_capture_length = NUM2LONG(entry);
+    }
+
+    entry = rb_ary_entry(ary, 5);
+     if (entry != Qnil) {
+        resource_limits->render_score = NUM2LONG(entry);
+    }
+
+    entry = rb_ary_entry(ary, 6);
+     if (entry != Qnil) {
+        resource_limits->assign_score = NUM2LONG(entry);
+    }
+
+    return Qnil;
+}
+
 void liquid_define_resource_limits(void)
 {
     cLiquidResourceLimits = rb_define_class_under(mLiquidC, "ResourceLimits", rb_cObject);
@@ -276,4 +341,6 @@ void liquid_define_resource_limits(void)
     rb_define_method(cLiquidResourceLimits, "reached?", resource_limits_reached_method, 0);
     rb_define_method(cLiquidResourceLimits, "reset", resource_limits_reset_method, 0);
     rb_define_method(cLiquidResourceLimits, "with_capture", resource_limits_with_capture_method, 0);
+    rb_define_method(cLiquidResourceLimits, "_dump_data", resource_limits_dump, 0);
+    rb_define_method(cLiquidResourceLimits, "_load_data", resource_limits_load, 1);
 }
